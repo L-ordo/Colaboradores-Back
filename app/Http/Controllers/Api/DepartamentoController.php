@@ -49,30 +49,35 @@ class DepartamentoController extends Controller
         }
     }
 
-    public function update(Request $request, string $id)
-    {
-        try {
-            $departamento = Departamento::findOrFail($id);
+    public function update(Request $request, $id)
+{
+    try {
+        $departamento = Departamento::findOrFail($id);
 
-            $validated = $request->validate([
-                'nombre' => 'required|string|max:100',
-                'pais_id' => 'required|exists:paises,id',
-            ]);
+        $validated = $request->validate([
+            'nombre' => 'required|string|max:100',
+            'pais_id' => 'nullable|exists:paises,id',
+        ]);
 
-            $departamento->update($validated);
+        $departamento->update([
+            'nombre' => $validated['nombre'],
+        ]);
 
-            return response()->json([
-                'message' => 'Departamento actualizado correctamente.',
-                'data' => $departamento->load('pais'),
-            ]);
+        return response()->json([
+            'message' => 'Departamento actualizado correctamente.',
+            'data' => $departamento->load('pais'),
+        ], 200);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al actualizar el departamento.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Error al actualizar el departamento.',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
+
+
+
 
     public function destroy(string $id)
     {

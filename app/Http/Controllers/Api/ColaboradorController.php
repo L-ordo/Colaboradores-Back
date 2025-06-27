@@ -19,9 +19,9 @@ class ColaboradorController extends Controller
         try {
             $validated = $request->validate([
                 'nombre_completo' => 'required|string|max:150',
-                'edad' => 'nullable|integer|min:18|max:99',
-                'telefono' => 'nullable|string|max:20',
-                'correo' => 'nullable|email|max:100',
+                'edad' => 'required|integer|min:18|max:99',
+                'telefono' => 'required|string|max:20',
+                'correo' => 'required|email|max:100',
                 'empresa_ids' => 'nullable|array',
                 'empresa_ids.*' => 'exists:empresas,id'
             ]);
@@ -51,31 +51,68 @@ class ColaboradorController extends Controller
     }
     
     // Update a Colaborador
-    public function update(Request $request, Colaborador $colaborador)
+    public function update(Request $request, $id)
     {
+    try {
+        // Obtener el colaborador por su ID
+        $colaborador = Colaborador::findOrFail($id);
+
+        // Validar los datos del request
         $validated = $request->validate([
             'nombre_completo' => 'required|string|max:150',
-            'edad' => 'nullable|integer|min:18|max:99',
-            'telefono' => 'nullable|string|max:20',
-            'correo' => 'nullable|email|max:100',
-            'empresa_ids' => 'nullable|array',
-            'empresa_ids.*' => 'exists:empresas,id'
+            'edad' => 'required|integer|min:18|max:99',
+            'telefono' => 'required|string|max:20',
+            'correo' => 'required|email|max:100'
         ]);
 
-        $colaborador->update($validated);
+        // Actualizar los campos básicos
+        $colaborador->update([
+            'nombre_completo' => $validated['nombre_completo'],
+            'edad' => $validated['edad'],
+            'telefono' => $validated['telefono'],
+            'correo' => $validated['correo'],
+        ]);
 
-        if (isset($validated['empresa_ids'])) {
-            $colaborador->empresas()->sync($validated['empresa_ids']);
-        }
+        // Retornar colaborador actualizado
+        return response()->json($colaborador, 200);
 
-        return $colaborador->load('empresas');
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Error al actualizar el colaborador.',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
+
 
     // Delete a Colaborador
-    public function destroy(Colaborador $colaborador)
+    public function destroy($id)
     {
-        $colaborador->empresas()->detach(); // limpia la relación
-        $colaborador->delete();
-        return response()->noContent();
+        try {
+            $colaborador = Colaborador::find($id);
+    
+            if (!$colaborador) {
+                return response()->json([
+                    'message' => 'Colaborador no encontrado.'
+                ], 404);
+            }
+    
+            // Elimina las relaciones con empresas
+            $colaborador->empresas()->detach();
+    
+            // Elimina el colaborador
+            $colaborador->delete();
+    
+            return response()->json([
+                'message' => 'Colaborador eliminado correctamente.'
+            ], 204);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al eliminar el colaborador.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
+    
 }
